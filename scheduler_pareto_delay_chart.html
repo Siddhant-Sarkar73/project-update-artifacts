@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project Delay Analysis – Scheduler Data Setup on UAT Accord</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6f9;
+      color: #1a2540;
+      min-height: 100vh;
+      padding: 36px 24px;
+    }
+
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      margin-bottom: 28px;
+    }
+    .header .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #6b7a99;
+      margin-bottom: 6px;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f1d3a;
+      margin-bottom: 4px;
+    }
+    .header .subtitle {
+      font-size: 13px;
+      color: #6b7a99;
+    }
+
+    /* ── KPI strip ── */
+    .kpi-row {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .kpi {
+      flex: 1;
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px 20px;
+      border-left: 4px solid #3b6ef6;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .kpi.amber { border-left-color: #f5a623; }
+    .kpi.red   { border-left-color: #e8394d; }
+    .kpi .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #9aa3b8;
+      margin-bottom: 6px;
+    }
+    .kpi .value {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0f1d3a;
+      line-height: 1;
+    }
+    .kpi .sub {
+      font-size: 12px;
+      color: #9aa3b8;
+      margin-top: 4px;
+    }
+
+    /* ── Chart card ── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 28px 20px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f1d3a;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 12px;
+      color: #9aa3b8;
+      margin-bottom: 22px;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 320px;
+    }
+
+    /* ── Insight box ── */
+    .insight {
+      background: #eef2ff;
+      border-left: 4px solid #3b6ef6;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+    }
+    .insight .insight-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #3b6ef6;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+    .insight p {
+      font-size: 13px;
+      color: #2d3f6b;
+      line-height: 1.6;
+    }
+
+    /* ── Legend table ── */
+    .legend-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .legend-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #9aa3b8;
+      padding: 8px 12px;
+      border-bottom: 1px solid #e8ecf3;
+    }
+    .legend-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f3f9;
+      vertical-align: middle;
+    }
+    .legend-table tr:last-child td { border-bottom: none; }
+    .dot {
+      display: inline-block;
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .bar-fill {
+      display: inline-block;
+      height: 8px;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+    .pct-badge {
+      display: inline-block;
+      background: #f0f3f9;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-weight: 700;
+      font-size: 12px;
+      color: #2d3f6b;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      font-size: 11px;
+      color: #b0b8cc;
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="eyebrow">Executive Delay Analysis</div>
+    <h1>Scheduler Data Setup — UAT Accord</h1>
+    <div class="subtitle">Initial deadline: Mar 27, 2026 &nbsp;·&nbsp; Revised deadline: Apr 15, 2026</div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi red">
+      <div class="label">Total Delay</div>
+      <div class="value">19 days</div>
+      <div class="sub">Mar 27 → Apr 15</div>
+    </div>
+    <div class="kpi amber">
+      <div class="label">Primary Cause</div>
+      <div class="value">18 days</div>
+      <div class="sub">UAT Instability &amp; Automation Failures</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Secondary Cause</div>
+      <div class="value">1 day</div>
+      <div class="sub">Entity &amp; Equity Form Failures</div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="card">
+    <div class="card-title">Pareto Chart — Delay by Root Cause</div>
+    <div class="card-desc">Bars show days lost per cause (left axis) · Line shows cumulative % of total delay (right axis)</div>
+    <div class="chart-wrap">
+      <canvas id="paretoChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight">
+    <div class="insight-title">Key Takeaway</div>
+    <p>
+      <strong>94.7% of the project delay (18 out of 19 days) is attributable to a single root cause</strong> —
+      UAT environment instability causing loading failures that broke downstream automations.
+      Stabilising the UAT environment is the highest-leverage action to prevent recurrence on future milestones.
+    </p>
+  </div>
+
+  <!-- Detail table -->
+  <div class="card">
+    <div class="card-title">Delay Breakdown</div>
+    <div class="card-desc">Ranked by impact in descending order</div>
+    <table class="legend-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Root Cause</th>
+          <th>Days Lost</th>
+          <th>% of Total</th>
+          <th>Cumulative %</th>
+          <th style="width:140px">Impact Bar</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>
+            <span class="dot" style="background:#e8394d"></span>
+            UAT Instability — Loading issues causing automation failures
+          </td>
+          <td><strong>18</strong></td>
+          <td><span class="pct-badge">94.7%</span></td>
+          <td>94.7%</td>
+          <td>
+            <span class="bar-fill" style="width:133px;background:#e8394d"></span>
+          </td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>
+            <span class="dot" style="background:#f5a623"></span>
+            Entity creations &amp; equity form submission failures
+          </td>
+          <td><strong>1</strong></td>
+          <td><span class="pct-badge">5.3%</span></td>
+          <td>100.0%</td>
+          <td>
+            <span class="bar-fill" style="width:7px;background:#f5a623"></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">Generated Apr 9, 2026 &nbsp;·&nbsp; Scheduler Data Setup / UAT Accord</div>
+
+</div>
+
+<script>
+  const labels = [
+    'UAT Instability\n(Loading → Automation Failures)',
+    'Entity & Equity\nForm Failures'
+  ];
+  const days   = [18, 1];
+  const cumPct = [94.74, 100.0];
+  const barColors = ['#e8394d', '#f5a623'];
+
+  const ctx = document.getElementById('paretoChart').getContext('2d');
+
+  new Chart(ctx, {
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Days Delayed',
+          data: days,
+          backgroundColor: barColors,
+          borderRadius: 6,
+          borderSkipped: false,
+          yAxisID: 'yDays',
+          order: 2,
+          barPercentage: 0.5,
+        },
+        {
+          type: 'line',
+          label: 'Cumulative %',
+          data: cumPct,
+          borderColor: '#3b6ef6',
+          backgroundColor: 'rgba(59,110,246,0.08)',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#3b6ef6',
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          tension: 0.3,
+          fill: true,
+          yAxisID: 'yPct',
+          order: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            usePointStyle: true,
+            font: { size: 12 },
+            color: '#2d3f6b',
+            padding: 18,
+          }
+        },
+        tooltip: {
+          backgroundColor: '#1a2540',
+          titleColor: '#fff',
+          bodyColor: '#c8d0e7',
+          padding: 12,
+          callbacks: {
+            label: function(ctx) {
+              if (ctx.dataset.label === 'Days Delayed')
+                return `  Days lost: ${ctx.parsed.y}`;
+              return `  Cumulative: ${ctx.parsed.y.toFixed(1)}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: '#6b7a99',
+            font: { size: 12 },
+            // handle multi-line labels
+          }
+        },
+        yDays: {
+          type: 'linear',
+          position: 'left',
+          min: 0,
+          max: 22,
+          ticks: {
+            stepSize: 2,
+            color: '#6b7a99',
+            font: { size: 11 },
+            callback: v => `${v}d`
+          },
+          grid: { color: '#e8ecf3' },
+          title: {
+            display: true,
+            text: 'Days Delayed',
+            color: '#9aa3b8',
+            font: { size: 11 }
+          }
+        },
+        yPct: {
+          type: 'linear',
+          position: 'right',
+          min: 0,
+          max: 110,
+          ticks: {
+            stepSize: 20,
+            color: '#3b6ef6',
+            font: { size: 11 },
+            callback: v => `${v}%`
+          },
+          grid: { drawOnChartArea: false },
+          title: {
+            display: true,
+            text: 'Cumulative %',
+            color: '#3b6ef6',
+            font: { size: 11 }
+          }
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>

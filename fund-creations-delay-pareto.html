@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project Delay Analysis – Fund Creations / Page Load & Parallel Work Stream Testing</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6f9;
+      color: #1a2540;
+      min-height: 100vh;
+      padding: 36px 24px;
+    }
+
+    .page { max-width: 920px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header { margin-bottom: 28px; }
+    .header .eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
+      text-transform: uppercase; color: #6b7a99; margin-bottom: 6px;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; color: #0f1d3a; margin-bottom: 4px; }
+    .header .subtitle { font-size: 13px; color: #6b7a99; }
+
+    /* ── KPI strip ── */
+    .kpi-row { display: flex; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
+    .kpi {
+      flex: 1; min-width: 130px; background: #fff; border-radius: 10px;
+      padding: 16px 20px; border-left: 4px solid #3b6ef6;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .kpi.red    { border-left-color: #c0392b; }
+    .kpi.amber  { border-left-color: #f5a623; }
+    .kpi.purple { border-left-color: #8e44ad; }
+    .kpi.green  { border-left-color: #22c55e; }
+    .kpi .label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; color: #9aa3b8; margin-bottom: 6px;
+    }
+    .kpi .value { font-size: 26px; font-weight: 800; color: #0f1d3a; line-height: 1; }
+    .kpi .sub   { font-size: 11px; color: #9aa3b8; margin-top: 4px; }
+
+    /* ── Phase Timeline ── */
+    .timeline-card {
+      background: #fff; border-radius: 12px;
+      padding: 22px 28px; box-shadow: 0 1px 5px rgba(0,0,0,0.07);
+      margin-bottom: 24px;
+    }
+    .timeline-card .card-title { font-size: 13px; font-weight: 700; color: #0f1d3a; margin-bottom: 18px; }
+    .timeline-wrap {
+      display: flex; align-items: flex-start; gap: 0;
+      overflow-x: auto; padding-bottom: 4px;
+    }
+    .phase {
+      flex: 1; min-width: 0; position: relative;
+    }
+    .phase-connector {
+      display: flex; align-items: center;
+    }
+    .phase-dot {
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; z-index: 1;
+    }
+    .phase-line {
+      flex: 1; height: 3px; background: #e0e4f0;
+    }
+    .phase-line.uat { background: linear-gradient(90deg, #c0392b44, #e8394d44); }
+    .phase-line.mixed { background: linear-gradient(90deg, #e8394d44, #8e44ad44); }
+    .phase-content {
+      margin-top: 10px; padding-right: 8px;
+    }
+    .phase-date { font-size: 12px; font-weight: 700; color: #0f1d3a; margin-bottom: 4px; }
+    .phase-days { font-size: 11px; color: #9aa3b8; margin-bottom: 6px; }
+    .phase-tag {
+      display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .tag-uat    { background: #fde8ea; color: #c0392b; }
+    .tag-resource { background: #f3e8ff; color: #8e44ad; }
+    .phase-reasons {
+      margin-top: 6px; font-size: 11px; color: #6b7a99; line-height: 1.5;
+    }
+    .phase-reasons li { list-style: none; padding-left: 10px; position: relative; }
+    .phase-reasons li::before {
+      content: '·'; position: absolute; left: 0; color: #b0b8cc;
+    }
+
+    /* ── Chart card ── */
+    .card {
+      background: #fff; border-radius: 12px; padding: 28px 28px 20px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08); margin-bottom: 24px;
+    }
+    .card-title { font-size: 14px; font-weight: 700; color: #0f1d3a; margin-bottom: 4px; }
+    .card-desc  { font-size: 12px; color: #9aa3b8; margin-bottom: 22px; }
+    .chart-wrap { position: relative; height: 340px; }
+
+    /* ── Legend pills ── */
+    .legend-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    .pill {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: #6b7a99; font-weight: 600;
+    }
+    .pill-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Insight ── */
+    .insight {
+      background: #fdf4ff; border-left: 4px solid #8e44ad;
+      border-radius: 8px; padding: 14px 18px; margin-bottom: 24px;
+    }
+    .insight-uat {
+      background: #fff5f5; border-left-color: #c0392b;
+    }
+    .insight .insight-title {
+      font-size: 12px; font-weight: 700; color: #8e44ad;
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;
+    }
+    .insight-uat .insight-title { color: #c0392b; }
+    .insight p { font-size: 13px; color: #2d3f6b; line-height: 1.6; }
+
+    /* ── Table ── */
+    .legend-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .legend-table th {
+      text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; color: #9aa3b8; padding: 8px 12px;
+      border-bottom: 1px solid #e8ecf3;
+    }
+    .legend-table td {
+      padding: 10px 12px; border-bottom: 1px solid #f0f3f9; vertical-align: middle;
+    }
+    .legend-table tr:last-child td { border-bottom: none; }
+    .dot-cell {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+      margin-right: 8px; vertical-align: middle; flex-shrink: 0;
+    }
+    .tag-cell {
+      display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 12px; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .bar-fill { display: inline-block; height: 8px; border-radius: 4px; vertical-align: middle; }
+    .pct-badge {
+      display: inline-block; background: #f0f3f9; border-radius: 20px;
+      padding: 2px 10px; font-weight: 700; font-size: 12px; color: #2d3f6b;
+    }
+
+    /* ── Footer ── */
+    .footer { font-size: 11px; color: #b0b8cc; text-align: center; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="eyebrow">Executive Delay Analysis</div>
+    <h1>Fund Creations — Page Load &amp; Parallel Work Stream Testing</h1>
+    <div class="subtitle">Initial deadline: Mar 27, 2026 &nbsp;·&nbsp; Revised deadline: Apr 11, 2026</div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi red">
+      <div class="label">Total Delay</div>
+      <div class="value">15 days</div>
+      <div class="sub">Mar 27 → Apr 11</div>
+    </div>
+    <div class="kpi red">
+      <div class="label">UAT-Driven Delay</div>
+      <div class="value">14 days</div>
+      <div class="sub">93% of total delay</div>
+    </div>
+    <div class="kpi amber">
+      <div class="label">Unique Blockers</div>
+      <div class="value">6</div>
+      <div class="sub">All rooted in UAT instability</div>
+    </div>
+    <div class="kpi purple">
+      <div class="label">Deadline Pushes</div>
+      <div class="value">3×</div>
+      <div class="sub">Mar 27 → Apr 7 → Apr 8 → Apr 11</div>
+    </div>
+  </div>
+
+  <!-- Phase Timeline -->
+  <div class="timeline-card">
+    <div class="card-title">Deadline Evolution</div>
+    <div class="timeline-wrap">
+
+      <!-- Phase 0: original -->
+      <div class="phase" style="flex:0 0 auto; min-width:90px;">
+        <div class="phase-connector">
+          <div class="phase-dot" style="background:#22c55e; border: 2px solid #166534;"></div>
+          <div class="phase-line uat"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-date">Mar 27</div>
+          <div class="phase-days">Original deadline</div>
+          <span class="phase-tag" style="background:#dcfce7;color:#166534;">TARGET</span>
+        </div>
+      </div>
+
+      <!-- Phase 1: push to Apr 7 -->
+      <div class="phase">
+        <div class="phase-connector">
+          <div class="phase-dot" style="background:#c0392b;"></div>
+          <div class="phase-line uat"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-date">Apr 7 <span style="font-weight:400;color:#9aa3b8;">+11d</span></div>
+          <div class="phase-days">Push #1</div>
+          <span class="phase-tag tag-uat">UAT</span>
+          <ul class="phase-reasons">
+            <li>Entity (NTT) creation failure</li>
+            <li>Partial security creation — SecMaster broken, auto submission failing, only 50% of securities created</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Phase 2: push to Apr 8 -->
+      <div class="phase">
+        <div class="phase-connector">
+          <div class="phase-dot" style="background:#e8394d;"></div>
+          <div class="phase-line mixed"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-date">Apr 8 <span style="font-weight:400;color:#9aa3b8;">+1d</span></div>
+          <div class="phase-days">Push #2</div>
+          <span class="phase-tag tag-uat">UAT</span>
+          <ul class="phase-reasons">
+            <li>Cash loan submission failing</li>
+            <li>Investment form not working</li>
+            <li>Securities tab not loading</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Phase 3: push to Apr 11 -->
+      <div class="phase" style="flex:0 0 auto; min-width:120px;">
+        <div class="phase-connector">
+          <div class="phase-dot" style="background:#8e44ad;"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-date">Apr 11 <span style="font-weight:400;color:#9aa3b8;">+3d</span></div>
+          <div class="phase-days">Push #3</div>
+          <span class="phase-tag tag-resource">Resource</span>
+          <ul class="phase-reasons">
+            <li>4 prod environments</li>
+            <li>Insufficient QA bandwidth</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Pareto Chart -->
+  <div class="card">
+    <div class="card-title">Pareto Chart — Days of Delay by Blocker</div>
+    <div class="card-desc">
+      Bars show days of delay attributed to each blocker (left axis) &nbsp;·&nbsp;
+      Line shows cumulative % of total delay (right axis) &nbsp;·&nbsp;
+      <span style="color:#c0392b;font-weight:600;">■</span> UAT-related &nbsp;
+      <span style="color:#8e44ad;font-weight:600;">■</span> Resource/Process &nbsp;·&nbsp;
+      Partial Security Creation consolidates SecMaster, auto-submission &amp; 50% creation failures
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="paretoChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Insights -->
+  <div class="insight insight-uat">
+    <div class="insight-title">UAT Instability Pattern</div>
+    <p>
+      <strong>5 distinct failure types emerged from a single root cause — UAT environment instability.</strong>
+      Each deadline push revealed a new surface area of breakage: first data creation pipelines,
+      then submission workflows, then UI tab loading. The variety of blockers is not a sign of
+      multiple problems — it is a sign of one deeply unstable environment affecting different layers.
+    </p>
+  </div>
+
+  <div class="insight">
+    <div class="insight-title">Resource Constraint (Apr 10 → 11)</div>
+    <p>
+      A front-end fix (Bootstrap removal) that should have taken 2–3 hours consumed a full day
+      because it had to be validated across <strong>4 production environments</strong> with
+      insufficient QA bandwidth. This is a force-multiplier risk: any change becomes 4× more
+      expensive to test as the environment count grows.
+    </p>
+  </div>
+
+  <!-- Breakdown Table -->
+  <div class="card">
+    <div class="card-title">Blocker Breakdown</div>
+    <div class="card-desc">Ranked by delay contribution — 4 UAT blockers + 1 resource blocker</div>
+    <table class="legend-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Blocker</th>
+          <th>Type</th>
+          <th>Phase</th>
+          <th>Days</th>
+          <th>% Total</th>
+          <th>Cumulative</th>
+          <th style="width:130px">Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>
+            <span class="dot-cell" style="background:#c0392b;"></span>
+            <strong>Partial Security Creation</strong>
+            <div style="font-size:11px;color:#9aa3b8;padding-left:18px;margin-top:2px;">
+              SecMaster broken · Auto submission on credit post failing · Only 50% of securities created
+            </div>
+          </td>
+          <td><span class="tag-cell" style="background:#fde8ea;color:#c0392b;">UAT</span></td>
+          <td style="color:#9aa3b8;font-size:12px;">Mar 27→Apr 7</td>
+          <td><strong>7</strong></td>
+          <td><span class="pct-badge">46.7%</span></td>
+          <td>46.7%</td>
+          <td><span class="bar-fill" style="width:120px;background:#c0392b;"></span></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><span class="dot-cell" style="background:#e8394d;"></span>Entity (NTT) Creation Failure</td>
+          <td><span class="tag-cell" style="background:#fde8ea;color:#c0392b;">UAT</span></td>
+          <td style="color:#9aa3b8;font-size:12px;">Mar 27→Apr 7</td>
+          <td><strong>4</strong></td>
+          <td><span class="pct-badge">26.7%</span></td>
+          <td>73.3%</td>
+          <td><span class="bar-fill" style="width:69px;background:#e8394d;"></span></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><span class="dot-cell" style="background:#f5a623;"></span>Cash Loan Submission &amp; Investment Form Failures</td>
+          <td><span class="tag-cell" style="background:#fde8ea;color:#c0392b;">UAT</span></td>
+          <td style="color:#9aa3b8;font-size:12px;">Apr 7→Apr 8</td>
+          <td><strong>2</strong></td>
+          <td><span class="pct-badge">13.3%</span></td>
+          <td>86.7%</td>
+          <td><span class="bar-fill" style="width:34px;background:#f5a623;"></span></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><span class="dot-cell" style="background:#f39c12;"></span>Securities Tab Not Loading — Manual Submission Blocked</td>
+          <td><span class="tag-cell" style="background:#fde8ea;color:#c0392b;">UAT</span></td>
+          <td style="color:#9aa3b8;font-size:12px;">Apr 7→Apr 8</td>
+          <td><strong>1</strong></td>
+          <td><span class="pct-badge">6.7%</span></td>
+          <td>93.3%</td>
+          <td><span class="bar-fill" style="width:17px;background:#f39c12;"></span></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><span class="dot-cell" style="background:#8e44ad;"></span>Insufficient QA Bandwidth Across 4 Prod Environments</td>
+          <td><span class="tag-cell" style="background:#f3e8ff;color:#8e44ad;">Resource</span></td>
+          <td style="color:#9aa3b8;font-size:12px;">Apr 10→Apr 11</td>
+          <td><strong>1</strong></td>
+          <td><span class="pct-badge">6.7%</span></td>
+          <td>100.0%</td>
+          <td><span class="bar-fill" style="width:17px;background:#8e44ad;"></span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">Generated Apr 10, 2026 &nbsp;·&nbsp; Fund Creations / Page Load &amp; Parallel Work Stream Testing</div>
+
+</div>
+
+<script>
+  const labels = [
+    'Partial Security\nCreation',
+    'Entity (NTT)\nCreation Failure',
+    'Cash Loan Submission &\nInvestment Form Failures',
+    'Securities Tab\nNot Loading',
+    'QA Capacity\n(4 Environments)'
+  ];
+  const days    = [7, 4, 2, 1, 1];
+  const cumPct  = [46.7, 73.3, 86.7, 93.3, 100.0];
+  const barColors = ['#c0392b', '#e8394d', '#f5a623', '#f39c12', '#8e44ad'];
+
+  const maxBar = 18; // y-axis max
+
+  // Max bar width for impact bars (130px total, mapped to 4 days = 120px)
+  const ctx = document.getElementById('paretoChart').getContext('2d');
+
+  new Chart(ctx, {
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Days of Delay',
+          data: days,
+          backgroundColor: barColors,
+          borderRadius: 6,
+          borderSkipped: false,
+          yAxisID: 'yDays',
+          order: 2,
+          barPercentage: 0.55,
+        },
+        {
+          type: 'line',
+          label: 'Cumulative %',
+          data: cumPct,
+          borderColor: '#3b6ef6',
+          backgroundColor: 'rgba(59,110,246,0.07)',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#3b6ef6',
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          tension: 0.3,
+          fill: true,
+          yAxisID: 'yPct',
+          order: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            usePointStyle: true,
+            font: { size: 12 },
+            color: '#2d3f6b',
+            padding: 16,
+          }
+        },
+        tooltip: {
+          backgroundColor: '#1a2540',
+          titleColor: '#fff',
+          bodyColor: '#c8d0e7',
+          padding: 12,
+          callbacks: {
+            label: function(ctx) {
+              if (ctx.dataset.label === 'Days of Delay')
+                return `  Days: ${ctx.parsed.y}`;
+              return `  Cumulative: ${ctx.parsed.y.toFixed(1)}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: '#6b7a99',
+            font: { size: 11 },
+          }
+        },
+        yDays: {
+          type: 'linear',
+          position: 'left',
+          min: 0,
+          max: maxBar,
+          ticks: {
+            stepSize: 2,
+            color: '#6b7a99',
+            font: { size: 11 },
+            callback: v => `${v}d`
+          },
+          grid: { color: '#e8ecf3' },
+          title: { display: true, text: 'Days of Delay', color: '#9aa3b8', font: { size: 11 } }
+        },
+        yPct: {
+          type: 'linear',
+          position: 'right',
+          min: 0,
+          max: 115,
+          ticks: {
+            stepSize: 20,
+            color: '#3b6ef6',
+            font: { size: 11 },
+            callback: v => `${v}%`
+          },
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'Cumulative %', color: '#3b6ef6', font: { size: 11 } }
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>
