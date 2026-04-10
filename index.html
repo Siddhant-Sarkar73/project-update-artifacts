@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UAT Accord — Project Update Artifacts</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #F4F6F9;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #0F1D3A;
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 4px solid #E8394D;
+    }
+    header .eyebrow {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #CADCFC;
+      margin-bottom: 4px;
+    }
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    /* ── Main grid ── */
+    main {
+      max-width: 900px;
+      margin: 48px auto;
+      padding: 0 24px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #8A9BBE;
+      margin-bottom: 16px;
+    }
+
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 10px;
+      border-left: 5px solid #E8394D;
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(15,29,58,0.07);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(15,29,58,0.12);
+    }
+    .card:nth-child(2) { border-left-color: #C0392B; }
+    .card:nth-child(3) { border-left-color: #8E44AD; }
+
+    .card-left { display: flex; align-items: center; gap: 20px; }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: #F4F6F9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0F1D3A;
+      margin-bottom: 4px;
+    }
+    .card-sub {
+      font-size: 13px;
+      color: #6B7A99;
+    }
+    .card-tag {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #ffffff;
+      background: #0F1D3A;
+      border-radius: 4px;
+      padding: 4px 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .arrow {
+      font-size: 18px;
+      color: #C0C8D8;
+      margin-left: 16px;
+      flex-shrink: 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px;
+      font-size: 12px;
+      color: #A0AABF;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <div class="eyebrow">Executive Updates · UAT Accord</div>
+      <h1>Project Update Artifacts</h1>
+    </div>
+  </header>
+
+  <main>
+    <p class="section-label">All Artifacts</p>
+    <div class="cards">
+
+      <a class="card" href="scheduler_pareto_delay_chart.html" target="_blank">
+        <div class="card-left">
+          <div class="card-icon">📊</div>
+          <div>
+            <div class="card-title">Scheduler Data Setup — Delay Analysis</div>
+            <div class="card-sub">Pareto chart · Mar 27 → Apr 15 · 19-day delay</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="card-tag">Pareto</span>
+          <span class="arrow">›</span>
+        </div>
+      </a>
+
+      <a class="card" href="fund-creations-delay-pareto.html" target="_blank">
+        <div class="card-left">
+          <div class="card-icon">📈</div>
+          <div>
+            <div class="card-title">Fund Creations — Delay Root Cause Analysis</div>
+            <div class="card-sub">Pareto chart · Mar 27 → Apr 11 · 15-day delay · 5 blockers</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="card-tag">Pareto</span>
+          <span class="arrow">›</span>
+        </div>
+      </a>
+
+      <a class="card" href="test-case-blockage.html" target="_blank">
+        <div class="card-left">
+          <div class="card-icon">🔴</div>
+          <div>
+            <div class="card-title">Test Case Blockage — Data Setup Impact</div>
+            <div class="card-sub">Dual donut · 77 of 203 cases blocked · In-Page Load + Parallel Work Stream</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="card-tag">Donut</span>
+          <span class="arrow">›</span>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+  <footer>UAT Accord · 73strings · April 2026</footer>
+
+</body>
+</html>
